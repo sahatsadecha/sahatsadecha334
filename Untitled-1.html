@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบลงทะเบียนนักศึกษา - วิทยาลัยเทคนิคนางรอง</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Prompt & Sarabun -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                        sarabun: ['Sarabun', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            400: '#829ab1',
+                            500: '#627d98',
+                            600: '#486581',
+                            700: '#334e68',
+                            800: '#243b53',
+                            900: '#102a43',
+                            950: '#0a1929',
+                        },
+                        gold: {
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-color: white !important;
+            }
+            #printable-area {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+        }
+        .tab-content {
+            animation: fadeIn 0.25s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border-t-4 border-gold-500">
+            <div class="flex items-center gap-3 text-navy-900 mb-3">
+                <div class="w-10 h-10 rounded-full bg-gold-100 text-gold-600 flex items-center justify-center">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </div>
+                <h3 id="confirm-title" class="text-lg font-bold">ยืนยันการทำรายการ</h3>
+            </div>
+            <p id="confirm-message" class="text-slate-600 text-sm mb-6 font-sarabun leading-relaxed">คุณต้องการดำเนินการนี้ใช่หรือไม่?</p>
+            <div class="flex justify-end gap-3">
+                <button id="confirm-cancel-btn" type="button" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">ยกเลิก</button>
+                <button id="confirm-ok-btn" type="button" class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-red-600 hover:bg-red-700 shadow-md transition">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+    <!-- Admin Login / Register Modal -->
+    <div id="admin-login-modal" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border-t-4 border-gold-500">
+            <div class="bg-navy-900 text-white px-5 py-4 flex justify-between items-center">
+                <h3 id="admin-modal-title" class="font-bold text-sm flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-gold-400"></i>
+                    <span>แอดมินเข้า - วิทยาลัยเทคนิคนางรอง</span>
+                </h3>
+                <button type="button" onclick="closeAdminLoginModal()" class="text-navy-300 hover:text-white transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Mode Switcher inside Admin Modal -->
+            <div class="px-5 pt-4">
+                <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl text-xs font-semibold">
+                    <button type="button" id="admin-tab-login" onclick="switchAdminModalMode('login')" class="py-1.5 rounded-lg bg-white text-navy-900 shadow-sm transition">
+                        เข้าสู่ระบบแอดมิน
+                    </button>
+                    <button type="button" id="admin-tab-register" onclick="switchAdminModalMode('register')" class="py-1.5 rounded-lg text-slate-500 hover:text-navy-900 transition">
+                        สมัครแอดมิน
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Login Form -->
+            <form id="admin-login-form" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">อีเมลแอดมิน <span class="text-red-500">*</span></label>
+                    <input type="email" id="admin-modal-email" required placeholder="admin@nrtc.ac.th" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">รหัสผ่านแอดมิน <span class="text-red-500">*</span></label>
+                    <input type="password" id="admin-modal-password" required placeholder="กรอกรหัสผ่านแอดมิน" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeAdminLoginModal()" class="px-3.5 py-2 rounded-xl text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-navy-900 hover:bg-navy-800 shadow transition">เข้าสู่ระบบแอดมิน</button>
+                </div>
+            </form>
+
+            <!-- Admin Register Form -->
+            <form id="admin-register-form" class="p-5 space-y-3.5 hidden">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">ชื่อ-นามสกุล เจ้าหน้าที่ <span class="text-red-500">*</span></label>
+                    <input type="text" id="admin-reg-name" required placeholder="เช่น นายสมชาย งานทะเบียน" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">อีเมลแอดมิน <span class="text-red-500">*</span></label>
+                    <input type="email" id="admin-reg-email" required placeholder="staff@nrtc.ac.th" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">รหัสผ่านแอดมิน <span class="text-red-500">*</span></label>
+                    <input type="password" id="admin-reg-password" required minlength="6" placeholder="อย่างน้อย 6 ตัวอักษร" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">รหัสยืนยันเจ้าหน้าที่ (Invite Code) <span class="text-red-500">*</span></label>
+                    <input type="text" id="admin-reg-code" required placeholder="พิมพ์ NRTC-ADMIN-2026" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm font-mono focus:ring-2 focus:ring-navy-800">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeAdminLoginModal()" class="px-3.5 py-2 rounded-xl text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-navy-950 bg-gold-500 hover:bg-gold-400 shadow transition">สมัครบัญชีแอดมิน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Admin Account Modal (For Admin Only) -->
+    <div id="add-admin-modal" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border-t-4 border-navy-900">
+            <div class="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i data-lucide="shield-plus" class="w-5 h-5 text-gold-400"></i>
+                    <span>เพิ่มบัญชีเจ้าหน้าที่แอดมินใหม่</span>
+                </h3>
+                <button type="button" onclick="closeAddAdminModal()" class="text-navy-300 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="add-admin-form" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">ชื่อ-นามสกุล เจ้าหน้าที่ <span class="text-red-500">*</span></label>
+                    <input type="text" id="new-admin-name" required placeholder="เช่น นายสมชาย งานทะเบียน" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">อีเมลเจ้าหน้าที่ <span class="text-red-500">*</span></label>
+                    <input type="email" id="new-admin-email" required placeholder="staff@nrtc.ac.th" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">รหัสผ่านเริ่มต้น <span class="text-red-500">*</span></label>
+                    <input type="password" id="new-admin-password" required minlength="6" placeholder="อย่างน้อย 6 ตัวอักษร" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeAddAdminModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-navy-900 hover:bg-navy-800 shadow-md transition">สร้างบัญชีแอดมิน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Course Modal (For Admin) -->
+    <div id="add-course-modal" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border-t-4 border-gold-500">
+            <div class="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i data-lucide="book-plus" class="w-5 h-5 text-gold-400"></i>
+                    <span>เพิ่มรายวิชาใหม่เข้าสู่ระบบ</span>
+                </h3>
+                <button type="button" onclick="closeAddCourseModal()" class="text-navy-300 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="add-course-form" class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">รหัสวิชา <span class="text-red-500">*</span></label>
+                        <input type="text" id="new-c-code" maxlength="10" placeholder="เช่น 20001-1001" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">หน่วยกิต <span class="text-red-500">*</span></label>
+                        <select id="new-c-credits" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white">
+                            <option value="1">1 หน่วยกิต</option>
+                            <option value="2">2 หน่วยกิต</option>
+                            <option value="3" selected>3 หน่วยกิต</option>
+                            <option value="4">4 หน่วยกิต</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">ชื่อรายวิชา (ภาษาไทย) <span class="text-red-500">*</span></label>
+                    <input type="text" id="new-c-name" placeholder="เช่น การเขียนโปรแกรมเว็บเบื้องต้น" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">ชื่อรายวิชา (ภาษาอังกฤษ) <span class="text-red-500">*</span></label>
+                    <input type="text" id="new-c-enname" placeholder="e.g. Web Programming Fundamentals" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">หมวดวิชา</label>
+                        <select id="new-c-category" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white">
+                            <option value="สมรรถนะแกนกลาง">สมรรถนะแกนกลาง</option>
+                            <option value="สมรรถนะวิชาชีพ">สมรรถนะวิชาชีพ</option>
+                            <option value="วิชาเลือกเสรี">วิชาเลือกเสรี</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">ห้องเรียน</label>
+                        <input type="text" id="new-c-room" placeholder="เช่น ตึก 4 ห้อง 402" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">วันเรียน</label>
+                        <select id="new-c-day" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white">
+                            <option value="1">จันทร์</option>
+                            <option value="2">อังคาร</option>
+                            <option value="3">พุธ</option>
+                            <option value="4">พฤหัสบดี</option>
+                            <option value="5">ศุกร์</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">เวลาเริ่ม</label>
+                        <select id="new-c-start" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white">
+                            <option value="8">08:00 น.</option>
+                            <option value="9" selected>09:00 น.</option>
+                            <option value="10">10:00 น.</option>
+                            <option value="13">13:00 น.</option>
+                            <option value="14">14:00 น.</option>
+                            <option value="15">15:00 น.</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">จำนวนชั่วโมง</label>
+                        <select id="new-c-duration" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white">
+                            <option value="1">1 ชม.</option>
+                            <option value="2">2 ชม.</option>
+                            <option value="3" selected>3 ชม.</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">อาจารย์ผู้สอน</label>
+                    <input type="text" id="new-c-instructor" placeholder="เช่น ครูสมหญิง วิชาการ" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeAddCourseModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-navy-900 hover:bg-navy-800 shadow-md transition">บันทึกรายวิชา</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- AUTHENTICATION VIEW (STUDENT LOGIN/REGISTER + ADMIN LOGIN BUTTON)   -->
+    <!-- =================================================================== -->
+    <div id="auth-view" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy-900 via-navy-800 to-slate-900 p-4 sm:p-6">
+        <div class="max-w-5xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 border border-navy-700/30">
+
+            <!-- Left Panel -->
+            <div class="lg:col-span-5 bg-gradient-to-b from-navy-900 to-navy-800 text-white p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-gold-500/10 blur-2xl pointer-events-none"></div>
+                <div class="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-blue-500/10 blur-2xl pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-navy-900 shadow-lg mb-6">
+                        <i data-lucide="graduation-cap" class="w-8 h-8"></i>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white leading-snug">
+                        วิทยาลัยเทคนิคนางรอง<br>
+                        <span class="text-gold-400 text-lg font-semibold">ระบบลงทะเบียนนักศึกษา (REG)</span>
+                    </h1>
+                    <p class="text-sm text-navy-200 font-sarabun mt-3 leading-relaxed">
+                        ระบบบริการการศึกษาสำหรับนักศึกษาวิทยาลัยเทคนิคนางรอง ลงทะเบียนเรียน ตรวจสอบตารางเรียนรายสัปดาห์ และจัดการประวัตินักศึกษา
+                    </p>
+                </div>
+
+                <!-- Student Demo Login + Admin Entrance Button -->
+                <div class="relative z-10 mt-8 pt-6 border-t border-navy-700/80 space-y-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gold-400 mb-2.5 flex items-center gap-1.5">
+                            <i data-lucide="zap" class="w-4 h-4"></i> ทดลองเข้าใช้งาน (บัญชีนักศึกษา)
+                        </p>
+                        <button type="button" onclick="quickStudentDemoLogin()" class="w-full py-2.5 px-4 rounded-xl bg-navy-700/80 hover:bg-navy-600 border border-navy-600 text-left transition flex items-center justify-between group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+                                    <i data-lucide="user" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-white">เข้าสู่ระบบนักศึกษาตัวอย่าง</p>
+                                    <p class="text-[11px] text-navy-200 font-mono">6910110042 / 1234</p>
+                                </div>
+                            </div>
+                            <i data-lucide="arrow-right" class="w-4 h-4 text-gold-400 group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+                    </div>
+
+                    <div class="pt-3 border-t border-navy-700/60 flex items-center justify-between gap-2">
+                        <span class="text-xs text-navy-200">สำหรับเจ้าหน้าที่ผู้ดูแลระบบ</span>
+                        <button type="button" onclick="openAdminLoginModal()" class="px-3.5 py-2 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 text-xs font-bold shadow transition flex items-center gap-1.5 shrink-0">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                            <span>แอดมินเข้า</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Student Login & Student Register -->
+            <div class="lg:col-span-7 p-8 sm:p-10 flex flex-col justify-center bg-white">
+                <div class="flex p-1 bg-slate-100 rounded-xl mb-8 max-w-xs">
+                    <button type="button" id="auth-tab-login" onclick="switchAuthMode('login')" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-navy-900 shadow-sm transition">
+                        เข้าสู่ระบบนักศึกษา
+                    </button>
+                    <button type="button" id="auth-tab-register" onclick="switchAuthMode('register')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 hover:text-navy-900 transition">
+                        สมัครสมาชิกนักศึกษา
+                    </button>
+                </div>
+
+                <!-- STUDENT LOGIN FORM -->
+                <form id="login-form" class="space-y-5">
+                    <div>
+                        <h2 class="text-2xl font-bold text-navy-900">เข้าสู่ระบบสำหรับนักศึกษา</h2>
+                        <p class="text-sm text-slate-500 font-sarabun mt-1">วิทยาลัยเทคนิคนางรอง — กรอกรหัสนักศึกษาหรืออีเมล และรหัสผ่าน</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">รหัสนักศึกษา หรือ อีเมล <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <i data-lucide="user-check" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+                            <input type="text" id="login-identifier" required placeholder="เช่น 6910110042 หรือ student@nrtc.ac.th" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-navy-800">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">รหัสผ่าน <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+                            <input type="password" id="login-password" required placeholder="กรอกรหัสผ่านของคุณ" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-navy-800">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-navy-900 hover:bg-navy-800 text-white font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                        <i data-lucide="log-in" class="w-4 h-4 text-gold-400"></i>
+                        <span>เข้าสู่ระบบนักศึกษา</span>
+                    </button>
+                </form>
+
+                <!-- STUDENT REGISTER FORM -->
+                <form id="register-user-form" class="space-y-4 hidden">
+                    <div>
+                        <h2 class="text-2xl font-bold text-navy-900">สมัครสมาชิกนักศึกษาใหม่</h2>
+                        <p class="text-sm text-slate-500 font-sarabun mt-1">สร้างบัญชีนักศึกษาวิทยาลัยเทคนิคนางรอง เพื่อลงทะเบียนและดูตารางเรียน</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">รหัสนักศึกษา (10 หลัก) <span class="text-red-500">*</span></label>
+                        <div class="flex gap-2">
+                            <input type="text" id="reg-student-code" maxlength="10" required placeholder="เช่น 6910110099" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm font-mono focus:ring-2 focus:ring-navy-800">
+                            <button type="button" onclick="fillRandomRegCode()" class="px-3.5 bg-gold-100 hover:bg-gold-200 text-gold-800 rounded-xl text-xs font-semibold border border-gold-300 shrink-0">สุ่มรหัส</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">ชื่อ-นามสกุล นักศึกษา <span class="text-red-500">*</span></label>
+                        <input type="text" id="reg-displayname" required placeholder="เช่น นายกิตติศักดิ์ วงศ์สุวรรณ" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">อีเมลนักศึกษา <span class="text-red-500">*</span></label>
+                        <input type="email" id="reg-email" required placeholder="student@nrtc.ac.th" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">รหัสผ่าน <span class="text-red-500">*</span></label>
+                            <input type="password" id="reg-password" required minlength="4" placeholder="อย่างน้อย 4 ตัวอักษร" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">ยืนยันรหัสผ่าน <span class="text-red-500">*</span></label>
+                            <input type="password" id="reg-confirm-password" required minlength="4" placeholder="กรอกรหัสผ่านอีกครั้ง" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-navy-800">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-navy-900 hover:bg-navy-800 text-white font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-2 mt-2">
+                        <i data-lucide="user-plus" class="w-4 h-4 text-gold-400"></i>
+                        <span>สมัครสมาชิกนักศึกษา</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- MAIN APPLICATION SHELL (SHOWN AFTER LOGIN)                          -->
+    <!-- =================================================================== -->
+    <div id="app-shell" class="hidden flex-col min-h-screen">
+
+        <!-- Top Navigation Bar -->
+        <header class="bg-navy-900 text-white shadow-lg border-b-4 border-gold-500 sticky top-0 z-40 no-print">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <!-- Branding -->
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-navy-900 shadow-inner shrink-0">
+                            <i data-lucide="graduation-cap" class="w-7 h-7"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-base sm:text-xl font-bold tracking-wide text-white leading-tight">วิทยาลัยเทคนิคนางรอง</h1>
+                            <p class="text-xs text-gold-300 font-sarabun hidden sm:block">ระบบลงทะเบียนนักศึกษาและบริการการศึกษา (REG)</p>
+                        </div>
+                    </div>
+
+                    <!-- User Profile & Controls -->
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <div class="flex items-center gap-2.5 bg-navy-800/90 border border-navy-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl">
+                            <div id="user-avatar-badge" class="w-8 h-8 rounded-full bg-gold-500 text-navy-900 font-bold flex items-center justify-center text-sm shrink-0">
+                                U
+                            </div>
+                            <div class="text-xs hidden sm:block">
+                                <div class="flex items-center gap-1.5">
+                                    <span id="header-user-name" class="font-semibold text-white max-w-[160px] truncate">-</span>
+                                    <span id="header-user-role-badge" class="px-1.5 py-0.5 text-[10px] rounded bg-gold-500/20 text-gold-300 font-bold">Student</span>
+                                </div>
+                                <p id="header-user-subtext" class="text-navy-300 font-mono text-[11px]">-</p>
+                            </div>
+                        </div>
+
+                        <button type="button" onclick="openAccountModal()" title="ตั้งค่าบัญชี / เปลี่ยนรหัสผ่าน" class="p-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 text-navy-200 hover:text-white border border-navy-700 transition">
+                            <i data-lucide="settings" class="w-4 h-4"></i>
+                        </button>
+
+                        <button type="button" onclick="logoutUser()" title="ออกจากระบบ" class="px-3 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-600 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span class="hidden md:inline">ออกจากระบบ</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav id="main-nav-tabs" class="flex overflow-x-auto no-scrollbar space-x-1 pb-2 pt-1">
+                    <button type="button" onclick="switchTab('register')" id="nav-register" class="nav-btn role-student flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium transition whitespace-nowrap text-navy-100 hover:bg-navy-800 hover:text-white">
+                        <i data-lucide="id-card" class="w-4 h-4 text-gold-400"></i>
+                        <span>1. ประวัตินักศึกษา</span>
+                    </button>
+                    <button type="button" onclick="switchTab('courses')" id="nav-courses" class="nav-btn role-student flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium transition whitespace-nowrap text-navy-100 hover:bg-navy-800 hover:text-white">
+                        <i data-lucide="book-open" class="w-4 h-4 text-gold-400"></i>
+                        <span>2. ลงทะเบียนรายวิชา</span>
+                    </button>
+                    <button type="button" onclick="switchTab('summary')" id="nav-summary" class="nav-btn role-student flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium transition whitespace-nowrap text-navy-100 hover:bg-navy-800 hover:text-white">
+                        <i data-lucide="calendar-days" class="w-4 h-4 text-gold-400"></i>
+                        <span>3. สรุปผลและตารางเรียน</span>
+                    </button>
+
+                    <button type="button" onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn role-admin flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium transition whitespace-nowrap text-navy-100 hover:bg-navy-800 hover:text-white">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 text-gold-400"></i>
+                        <span>จัดการข้อมูลนักศึกษาและรายวิชา (Admin)</span>
+                        <span id="student-count-badge" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-gold-500 text-navy-900 font-bold">0</span>
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Admin Viewing Student Context Banner -->
+        <div id="admin-context-banner" class="hidden bg-amber-500 text-navy-950 px-4 py-2 text-xs font-semibold no-print">
+            <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="eye" class="w-4 h-4"></i>
+                    <span id="admin-context-text">โหมดผู้ดูแลระบบ: กำลังจัดการข้อมูลของนักศึกษา...</span>
+                </div>
+                <button type="button" onclick="switchTab('dashboard')" class="px-3 py-1 bg-navy-900 text-white rounded-lg text-xs hover:bg-navy-800 transition">
+                    กลับสู่หน้า Admin Dashboard
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+            <!-- ============================================================= -->
+            <!-- TAB 1: STUDENT PROFILE / REGISTRATION FORM                      -->
+            <!-- ============================================================= -->
+            <section id="tab-register" class="tab-content hidden">
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200/80 overflow-hidden">
+                    <div class="bg-gradient-to-r from-navy-900 to-navy-800 px-6 py-5 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                            <h2 id="form-header-title" class="text-xl font-bold flex items-center gap-2">
+                                <i data-lucide="user-plus" class="w-5 h-5 text-gold-400"></i>
+                                <span>ข้อมูลประวัตินักศึกษา — วิทยาลัยเทคนิคนางรอง</span>
+                            </h2>
+                            <p class="text-xs text-navy-200 font-sarabun mt-1">กรอกหรือตรวจสอบข้อมูลส่วนตัวและข้อมูลการศึกษาให้ครบถ้วนถูกต้อง</p>
+                        </div>
+                        <button type="button" onclick="resetStudentForm()" class="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-navy-700 hover:bg-navy-600 text-xs font-medium text-white border border-navy-600 transition flex items-center gap-1.5">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            <span>ล้างค่าฟอร์ม</span>
+                        </button>
+                    </div>
+
+                    <form id="student-form" class="p-6 sm:p-8 space-y-8" novalidate>
+                        <input type="hidden" id="editing-student-id" value="">
+
+                        <!-- 1. Personal Info -->
+                        <div>
+                            <h3 class="text-base font-bold text-navy-900 pb-2 border-b border-slate-200 mb-4 flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-navy-900 text-gold-400 text-xs flex items-center justify-center font-bold">1</span>
+                                ข้อมูลส่วนตัว
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">คำนำหน้า <span class="text-red-500">*</span></label>
+                                    <select id="prefix" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-navy-800">
+                                        <option value="">-- เลือก --</option>
+                                        <option value="นาย">นาย</option>
+                                        <option value="นางสาว">นางสาว</option>
+                                        <option value="นาง">นาง</option>
+                                    </select>
+                                </div>
+                                <div class="lg:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อ-นามสกุล (ภาษาไทย) <span class="text-red-500">*</span></label>
+                                    <input type="text" id="fullname-th" required placeholder="เช่น สมชาย ใจดี" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-navy-800">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">วัน/เดือน/ปีเกิด <span class="text-red-500">*</span></label>
+                                    <input type="date" id="birthdate" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-navy-800">
+                                </div>
+
+                                <div class="lg:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อ-นามสกุล (ภาษาอังกฤษ) <span class="text-red-500">*</span></label>
+                                    <input type="text" id="fullname-en" required placeholder="e.g. SOMCHAI JAIDEE" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-navy-800">
+                                </div>
+                                <div class="lg:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">เลขบัตรประจำตัวประชาชน (13 หลัก) <span class="text-red-500">*</span></label>
+                                    <input type="text" id="national-id" maxlength="13" required placeholder="ตัวเลข 13 หลัก" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-navy-800">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Academic Info -->
+                        <div>
+                            <h3 class="text-base font-bold text-navy-900 pb-2 border-b border-slate-200 mb-4 flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-navy-900 text-gold-400 text-xs flex items-center justify-center font-bold">2</span>
+                                ข้อมูลการศึกษา (วิทยาลัยเทคนิคนางรอง)
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div class="lg:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสนักศึกษา (10 หลัก) <span class="text-red-500">*</span></label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="student-id" maxlength="10" required placeholder="เช่น 6910110042" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-navy-800">
+                                        <button type="button" onclick="generateRandomStudentId()" class="px-3.5 py-2 rounded-xl bg-gold-100 hover:bg-gold-200 text-gold-800 text-xs font-semibold border border-gold-300 transition shrink-0">สุ่มรหัส</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">ระดับชั้น <span class="text-red-500">*</span></label>
+                                    <select id="year-level" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-navy-800">
+                                        <option value="ปวช.1">ปวช.1</option>
+                                        <option value="ปวช.2">ปวช.2</option>
+                                        <option value="ปวช.3">ปวช.3</option>
+                                        <option value="ปวส.1">ปวส.1</option>
+                                        <option value="ปวส.2">ปวส.2</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">ภาคการศึกษา <span class="text-red-500">*</span></label>
+                                    <select id="semester" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-navy-800">
+                                        <option value="1/2569">ภาคเรียนที่ 1/2569</option>
+                                        <option value="2/2569">ภาคเรียนที่ 2/2569</option>
+                                    </select>
+                                </div>
+
+                                <div class="lg:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">แผนกวิชา / สาขาวิชา <span class="text-red-500">*</span></label>
+                                    <select id="department" onchange="updateMajors()" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-navy-800">
+                                        <option value="">-- เลือกแผนกวิชา --</option>
+                                        <option value="เทคโนโลยีสารสนเทศ">เทคโนโลยีสารสนเทศ</option>
+                                        <option value="ช่างยนต์">ช่างยนต์</option>
+                                        <option value="ช่างไฟฟ้ากำลัง">ช่างไฟฟ้ากำลัง</option>
+                                        <option value="การบัญชี">การบัญชี</option>
+                                    </select>
+                                </div>
+                                <div class="lg:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">สาขางาน <span class="text-red-500">*</span></label>
+                                    <select id="major" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-navy-800">
+                                        <option value="">-- เลือกสาขางาน --</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Contact & Address -->
+                        <div>
+                            <h3 class="text-base font-bold text-navy-900 pb-2 border-b border-slate-200 mb-4 flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-navy-900 text-gold-400 text-xs flex items-center justify-center font-bold">3</span>
+                                ข้อมูลการติดต่อและที่อยู่
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์มือถือ <span class="text-red-500">*</span></label>
+                                    <input type="tel" id="phone" maxlength="10" required placeholder="เช่น 0812345678" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-navy-800">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">อีเมล <span class="text-red-500">*</span></label>
+                                    <input type="email" id="email" required placeholder="name@nrtc.ac.th" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-navy-800">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">ที่อยู่ (บ้านเลขที่ / หมู่ / ถนน) <span class="text-red-500">*</span></label>
+                                    <input type="text" id="address-line" required placeholder="เช่น 123 ม.4 ต.นางรอง" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-navy-800">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">อำเภอ/เขต <span class="text-red-500">*</span></label>
+                                    <input type="text" id="district" required placeholder="เช่น นางรอง" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-navy-800">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">จังหวัด <span class="text-red-500">*</span></label>
+                                    <input type="text" id="province" required placeholder="เช่น บุรีรัมย์" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-navy-800">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap justify-end gap-3 pt-4 border-t border-slate-200">
+                            <button type="submit" class="px-6 py-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-semibold text-sm shadow-md transition flex items-center gap-2">
+                                <i data-lucide="save" class="w-4 h-4 text-gold-400"></i>
+                                <span>บันทึกประวัติและไปเลือกรายวิชา</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ============================================================= -->
+            <!-- TAB 2: COURSE REGISTRATION                                      -->
+            <!-- ============================================================= -->
+            <section id="tab-courses" class="tab-content hidden">
+                <div id="no-student-selected-warning" class="hidden bg-amber-50 border-l-4 border-amber-500 p-6 rounded-2xl shadow-sm mb-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="alert-circle" class="w-6 h-6 text-amber-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <h3 class="font-bold text-amber-900">ยังไม่ได้บันทึกข้อมูลประวัตินักศึกษา</h3>
+                                <p class="text-sm text-amber-800 font-sarabun mt-0.5">กรุณากรอกและบันทึกข้อมูลประวัตินักศึกษาก่อนดำเนินการลงทะเบียนรายวิชา</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="switchTab('register')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition shrink-0">
+                            ไปที่หน้าประวัตินักศึกษา
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Credit Meter Bar -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200/80 p-5 mb-6 sticky top-20 z-30">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <p class="text-xs text-slate-500">ผู้ลงทะเบียนปัจจุบัน</p>
+                            <p id="active-student-banner" class="text-sm font-bold text-navy-900">-</p>
+                        </div>
+                        <div class="flex-grow max-w-md">
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span>หน่วยกิตที่เลือก</span>
+                                <span id="credit-counter-text" class="text-navy-900 font-mono">0 / 22 หน่วยกิต</span>
+                            </div>
+                            <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                                <div id="credit-progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <button type="button" onclick="switchTab('summary')" class="px-4 py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold shadow transition flex items-center gap-1.5 shrink-0">
+                            <span>ดูสรุปและตารางเรียน</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 text-gold-400"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search & Category Filter -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 mb-6 flex flex-col sm:flex-row gap-3">
+                    <div class="relative flex-grow">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                        <input type="text" id="course-search" oninput="renderCourses()" placeholder="ค้นหารหัสวิชา ชื่อวิชา หรือครูผู้สอน..." class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-navy-800">
+                    </div>
+                    <select id="course-category-filter" onchange="renderCourses()" class="rounded-xl border border-slate-300 px-3.5 py-2 text-sm bg-white focus:ring-2 focus:ring-navy-800">
+                        <option value="ALL">ทุกหมวดวิชา</option>
+                        <option value="สมรรถนะแกนกลาง">สมรรถนะแกนกลาง</option>
+                        <option value="สมรรถนะวิชาชีพ">สมรรถนะวิชาชีพ</option>
+                        <option value="วิชาเลือกเสรี">วิชาเลือกเสรี</option>
+                    </select>
+                </div>
+
+                <!-- Courses Grid -->
+                <div id="courses-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+            </section>
+
+            <!-- ============================================================= -->
+            <!-- TAB 3: SUMMARY & TIMETABLE                                    -->
+            <!-- ============================================================= -->
+            <section id="tab-summary" class="tab-content hidden">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-6 no-print">
+                    <div>
+                        <h2 class="text-xl font-bold text-navy-900">ใบยืนยันการลงทะเบียนและตารางเรียน</h2>
+                        <p class="text-xs text-slate-500 font-sarabun">วิทยาลัยเทคนิคนางรอง — ตรวจสอบรายวิชาและตารางเรียนรายสัปดาห์</p>
+                    </div>
+                    <button type="button" onclick="window.print()" class="px-5 py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold shadow-md transition flex items-center gap-2">
+                        <i data-lucide="printer" class="w-4 h-4 text-gold-400"></i>
+                        <span>พิมพ์ใบลงทะเบียน</span>
+                    </button>
+                </div>
+
+                <div id="printable-area" class="bg-white rounded-2xl shadow-md border border-slate-200/80 p-6 sm:p-8 space-y-8">
+                    <div class="border-b-2 border-navy-900 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-navy-900">ใบยืนยันผลการลงทะเบียนเรียน</h3>
+                            <p class="text-sm text-slate-600 font-sarabun">วิทยาลัยเทคนิคนางรอง สังกัดสำนักงานคณะกรรมการการอาชีวศึกษา</p>
+                        </div>
+                        <div class="text-left sm:text-right text-xs text-slate-500 font-mono">
+                            <p id="summary-semester">ภาคเรียนที่ 1/2569</p>
+                            <p id="summary-date">พิมพ์เมื่อ: -</p>
+                        </div>
+                    </div>
+
+                    <div id="summary-student-info" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200/70 text-sm"></div>
+
+                    <div>
+                        <h4 class="text-base font-bold text-navy-900 mb-3">รายวิชาที่ลงทะเบียน</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-navy-900 text-white text-xs">
+                                        <th class="py-3 px-4 rounded-tl-xl">รหัสวิชา</th>
+                                        <th class="py-3 px-4">ชื่อรายวิชา</th>
+                                        <th class="py-3 px-4 text-center">หน่วยกิต</th>
+                                        <th class="py-3 px-4">วัน-เวลาเรียน</th>
+                                        <th class="py-3 px-4">ห้องเรียน</th>
+                                        <th class="py-3 px-4 rounded-tr-xl">ครูผู้สอน</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="summary-courses-tbody" class="divide-y divide-slate-200"></tbody>
+                                <tfoot>
+                                    <tr class="bg-slate-50 font-bold text-navy-900">
+                                        <td colspan="2" class="py-3 px-4 text-right">รวมหน่วยกิตทั้งหมด</td>
+                                        <td id="summary-total-credits" class="py-3 px-4 text-center font-mono text-gold-700">0</td>
+                                        <td colspan="3" class="py-3 px-4 text-xs text-slate-500">หน่วยกิต</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-base font-bold text-navy-900 mb-3">ตารางเรียนรายสัปดาห์ (จันทร์ - ศุกร์)</h4>
+                        <div id="weekly-timetable" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================= -->
+            <!-- TAB 4: ADMIN DASHBOARD                                        -->
+            <!-- ============================================================= -->
+            <section id="tab-dashboard" class="tab-content hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-navy-900">Admin Dashboard — วิทยาลัยเทคนิคนางรอง</h2>
+                        <p class="text-sm text-slate-500 font-sarabun">จัดการข้อมูลนักศึกษา รายวิชา และบัญชีเจ้าหน้าที่แอดมิน</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2.5">
+                        <button type="button" onclick="openAddAdminModal()" class="px-4 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 text-white text-xs font-semibold shadow transition flex items-center gap-1.5">
+                            <i data-lucide="shield-plus" class="w-4 h-4 text-gold-400"></i>
+                            <span>เพิ่มบัญชีแอดมิน</span>
+                        </button>
+                        <button type="button" onclick="openAddCourseModal()" class="px-4 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 text-xs font-bold shadow transition flex items-center gap-1.5">
+                            <i data-lucide="book-plus" class="w-4 h-4"></i>
+                            <span>เพิ่มรายวิชาใหม่</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+                        <p class="text-xs text-slate-500">จำนวนนักศึกษาในระบบ</p>
+                        <p id="stat-total-students" class="text-2xl font-bold text-navy-900 mt-1">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+                        <p class="text-xs text-slate-500">จำนวนรายวิชาที่เปิดสอน</p>
+                        <p id="stat-total-courses" class="text-2xl font-bold text-navy-900 mt-1">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+                        <p class="text-xs text-slate-500">จำนวนบัญชีแอดมิน</p>
+                        <p id="stat-total-admins" class="text-2xl font-bold text-navy-900 mt-1">0</p>
+                    </div>
+                </div>
+
+                <!-- Student Search -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 mb-6">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                        <input type="text" id="admin-student-search" oninput="renderAdminDashboard()" placeholder="ค้นหานักศึกษาจากรหัส ชื่อ-นามสกุล หรือแผนกวิชา..." class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-navy-800">
+                    </div>
+                </div>
+
+                <!-- Students Table -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200/80 overflow-hidden mb-8">
+                    <div class="px-6 py-4 bg-navy-900 text-white font-bold text-sm">รายชื่อนักศึกษาทั้งหมด</div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-xs border-b border-slate-200">
+                                    <th class="py-3 px-4">รหัสนักศึกษา</th>
+                                    <th class="py-3 px-4">ชื่อ-นามสกุล</th>
+                                    <th class="py-3 px-4">แผนก / สาขางาน</th>
+                                    <th class="py-3 px-4 text-center">หน่วยกิต</th>
+                                    <th class="py-3 px-4 text-right">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-students-tbody" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Courses Management Table -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200/80 overflow-hidden">
+                    <div class="px-6 py-4 bg-navy-900 text-white font-bold text-sm">รายวิชาที่เปิดสอนในระบบ</div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-xs border-b border-slate-200">
+                                    <th class="py-3 px-4">รหัสวิชา</th>
+                                    <th class="py-3 px-4">ชื่อรายวิชา</th>
+                                    <th class="py-3 px-4 text-center">หน่วยกิต</th>
+                                    <th class="py-3 px-4">เวลาเรียน</th>
+                                    <th class="py-3 px-4 text-right">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-courses-tbody" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-navy-950 text-navy-300 py-5 text-center text-xs no-print mt-auto">
+            <p>© 2026 วิทยาลัยเทคนิคนางรอง — ระบบลงทะเบียนนักศึกษาและบริการการศึกษา</p>
+        </footer>
+    </div>
+
+    <script>
+        const STORAGE_KEYS = {
+            USERS: 'nrtc_reg_users_v1',
+            STUDENTS: 'nrtc_reg_students_v1',
+            COURSES: 'nrtc_reg_courses_v1',
+            SESSION_USER_ID: 'nrtc_reg_session_user_v1',
+            ACTIVE_STUDENT_ID: 'nrtc_reg_active_student_v1'
+        };
+
+        const MAJORS_BY_DEPT = {
+            'เทคโนโลยีสารสนเทศ': ['เทคโนโลยีสารสนเทศ', 'คอมพิวเตอร์ธุรกิจ'],
+            'ช่างยนต์': ['เทคนิคยานยนต์', 'เครื่องกล'],
+            'ช่างไฟฟ้ากำลัง': ['ไฟฟ้ากำลัง', 'อิเล็กทรอนิกส์'],
+            'การบัญชี': ['การบัญชี', 'การตลาด']
+        };
+
+        const DAY_NAMES = { 1: 'จันทร์', 2: 'อังคาร', 3: 'พุธ', 4: 'พฤหัสบดี', 5: 'ศุกร์' };
+
+        const DEFAULT_COURSES = [
+            { id: 'c1', code: '20001-1001', name: 'ภาษาไทยเพื่อการสื่อสาร', enName: 'Thai for Communication', credits: 2, category: 'สมรรถนะแกนกลาง', day: 1, startHour: 9, duration: 2, room: 'ตึก 1 ห้อง 102', instructor: 'ครูวิไลลักษณ์ พิทักษ์' },
+            { id: 'c2', code: '20001-1201', name: 'ภาษาอังกฤษชีวิตและสังคม', enName: 'English for Life and Society', credits: 2, category: 'สมรรถนะแกนกลาง', day: 2, startHour: 9, duration: 2, room: 'ตึก 1 ห้อง 204', instructor: 'Mr. David Miller' },
+            { id: 'c3', code: '20901-2001', name: 'การเขียนโปรแกรมคอมพิวเตอร์เบื้องต้น', enName: 'Introduction to Computer Programming', credits: 3, category: 'สมรรถนะวิชาชีพ', day: 1, startHour: 13, duration: 3, room: 'ตึก 4 ห้อง 401', instructor: 'ครูสุทธิพงษ์ นามดี' },
+            { id: 'c4', code: '20901-2002', name: 'ระบบฐานข้อมูลเบื้องต้น', enName: 'Database Systems Fundamentals', credits: 3, category: 'สมรรถนะวิชาชีพ', day: 3, startHour: 9, duration: 3, room: 'ตึก 4 ห้อง 402', instructor: 'ครูนิตยา สุขใจ' },
+            { id: 'c5', code: '20901-2003', name: 'การออกแบบและพัฒนาเว็บไซต์', enName: 'Web Design and Development', credits: 3, category: 'สมรรถนะวิชาชีพ', day: 4, startHour: 13, duration: 3, room: 'ตึก 4 ห้อง 403', instructor: 'ครูธนากร เจริญสุข' },
+            { id: 'c6', code: '20000-1501', name: 'กีฬาเพื่อสุขภาพและนันทนาการ', enName: 'Sports for Health and Recreation', credits: 1, category: 'วิชาเลือกเสรี', day: 5, startHour: 15, duration: 2, room: 'สนามกีฬา', instructor: 'ครูมานะ พละศึกษา' }
+        ];
+
+        const DEFAULT_STUDENTS = [
+            {
+                id: 'stu_demo_1',
+                studentId: '6910110042',
+                prefix: 'นาย',
+                fullnameTh: 'สมชาย ใจดี',
+                fullnameEn: 'SOMCHAI JAIDEE',
+                birthdate: '2009-05-14',
+                nationalId: '1319900123456',
+                yearLevel: 'ปวช.1',
+                semester: '1/2569',
+                department: 'เทคโนโลยีสารสนเทศ',
+                major: 'เทคโนโลยีสารสนเทศ',
+                phone: '0812345678',
+                email: '6910110042@nrtc.ac.th',
+                addressLine: '123 ม.4 ต.นางรอง',
+                district: 'นางรอง',
+                province: 'บุรีรัมย์',
+                enrolledCourseIds: ['c1', 'c3', 'c4']
+            }
+        ];
+
+        const DEFAULT_USERS = [
+            {
+                id: 'usr_admin_1',
+                email: 'admin@nrtc.ac.th',
+                password: 'admin123',
+                role: 'admin',
+                displayName: 'เจ้าหน้าที่ทะเบียน วิทยาลัยเทคนิคนางรอง',
+                studentId: null
+            },
+            {
+                id: 'usr_stu_1',
+                email: '6910110042@nrtc.ac.th',
+                password: '1234',
+                role: 'student',
+                displayName: 'นายสมชาย ใจดี',
+                studentId: '6910110042'
+            }
+        ];
+
+        let users = [];
+        let students = [];
+        let courses = [];
+        let currentUser = null;
+        let activeStudentId = null;
+
+        function loadFromStorage() {
+            try {
+                const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+                const rawStudents = localStorage.getItem(STORAGE_KEYS.STUDENTS);
+                const rawCourses = localStorage.getItem(STORAGE_KEYS.COURSES);
+
+                users = rawUsers ? JSON.parse(rawUsers) : [...DEFAULT_USERS];
+                students = rawStudents ? JSON.parse(rawStudents) : [...DEFAULT_STUDENTS];
+                courses = rawCourses ? JSON.parse(rawCourses) : [...DEFAULT_COURSES];
+
+                if (!rawUsers) localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+                if (!rawStudents) localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+                if (!rawCourses) localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+
+                const savedUserId = localStorage.getItem(STORAGE_KEYS.SESSION_USER_ID);
+                currentUser = users.find(u => u.id === savedUserId) || null;
+                activeStudentId = localStorage.getItem(STORAGE_KEYS.ACTIVE_STUDENT_ID) || null;
+            } catch (err) {
+                console.error('Storage error:', err);
+                users = [...DEFAULT_USERS];
+                students = [...DEFAULT_STUDENTS];
+                courses = [...DEFAULT_COURSES];
+            }
+        }
+
+        function saveAllToStorage() {
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+            localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+            localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+            if (currentUser) {
+                localStorage.setItem(STORAGE_KEYS.SESSION_USER_ID, currentUser.id);
+            } else {
+                localStorage.removeItem(STORAGE_KEYS.SESSION_USER_ID);
+            }
+            if (activeStudentId) {
+                localStorage.setItem(STORAGE_KEYS.ACTIVE_STUDENT_ID, activeStudentId);
+            } else {
+                localStorage.removeItem(STORAGE_KEYS.ACTIVE_STUDENT_ID);
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colorMap = {
+                success: 'bg-emerald-600 text-white border-emerald-400',
+                error: 'bg-red-600 text-white border-red-400',
+                warning: 'bg-amber-500 text-navy-950 border-amber-300',
+                info: 'bg-navy-900 text-white border-gold-500'
+            };
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-lg border-l-4 text-sm font-medium flex items-center gap-2 transition ${colorMap[type] || colorMap.info}`;
+            toast.innerHTML = `<span class="flex-grow">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 250);
+            }, 3200);
+        }
+
+        function showConfirmModal(title, message, onConfirm) {
+            const modal = document.getElementById('confirm-modal');
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                okBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            okBtn.onclick = () => {
+                cleanup();
+                if (typeof onConfirm === 'function') onConfirm();
+            };
+            cancelBtn.onclick = cleanup;
+        }
+
+        function switchAuthMode(mode) {
+            const loginForm = document.getElementById('login-form');
+            const regForm = document.getElementById('register-user-form');
+            const tabLogin = document.getElementById('auth-tab-login');
+            const tabReg = document.getElementById('auth-tab-register');
+
+            if (mode === 'login') {
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                tabLogin.className = 'flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-navy-900 shadow-sm transition';
+                tabReg.className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 hover:text-navy-900 transition';
+            } else {
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+                tabReg.className = 'flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-navy-900 shadow-sm transition';
+                tabLogin.className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-500 hover:text-navy-900 transition';
+            }
+        }
+
+        function fillRandomRegCode() {
+            let code = '691011';
+            for (let i = 0; i < 4; i++) code += Math.floor(Math.random() * 10);
+            document.getElementById('reg-student-code').value = code;
+        }
+
+        function quickStudentDemoLogin() {
+            const stuUser = users.find(u => u.role === 'student' && u.studentId === '6910110042');
+            if (!stuUser) {
+                showToast('ไม่พบบัญชีนักศึกษาตัวอย่าง', 'error');
+                return;
+            }
+            currentUser = stuUser;
+            const stuRecord = students.find(s => s.studentId === stuUser.studentId);
+            activeStudentId = stuRecord ? stuRecord.id : null;
+            saveAllToStorage();
+            showToast(`เข้าสู่ระบบนักศึกษา: ${stuUser.displayName}`, 'success');
+            enterAppShell();
+        }
+
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('login-identifier').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value;
+
+            const matched = users.find(u =>
+                u.role === 'student' &&
+                u.password === password &&
+                (u.email.toLowerCase() === identifier || (u.studentId && u.studentId.toLowerCase() === identifier))
+            );
+
+            if (!matched) {
+                showToast('รหัสนักศึกษา/อีเมล หรือรหัสผ่านนักศึกษาไม่ถูกต้อง', 'error');
+                return;
+            }
+
+            currentUser = matched;
+            const stuRecord = students.find(s => s.studentId === matched.studentId);
+            activeStudentId = stuRecord ? stuRecord.id : null;
+            saveAllToStorage();
+            showToast(`ยินดีต้อนรับ ${matched.displayName}`, 'success');
+            enterAppShell();
+        });
+
+        document.getElementById('register-user-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const studentCode = document.getElementById('reg-student-code').value.trim();
+            const displayName = document.getElementById('reg-displayname').value.trim();
+            const email = document.getElementById('reg-email').value.trim().toLowerCase();
+            const password = document.getElementById('reg-password').value;
+            const confirmPass = document.getElementById('reg-confirm-password').value;
+
+            if (!/^\d{10}$/.test(studentCode)) {
+                showToast('กรุณากรอกรหัสนักศึกษาเป็นตัวเลข 10 หลัก', 'error');
+                return;
+            }
+            if (password !== confirmPass) {
+                showToast('รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน', 'error');
+                return;
+            }
+            if (users.some(u => u.email.toLowerCase() === email)) {
+                showToast('อีเมลนี้ถูกใช้งานแล้ว', 'error');
+                return;
+            }
+            if (users.some(u => u.studentId === studentCode)) {
+                showToast('รหัสนักศึกษานี้มีบัญชีอยู่ในระบบแล้ว', 'error');
+                return;
+            }
+
+            const newStudent = {
+                id: 'stu_' + Date.now(),
+                studentId: studentCode,
+                prefix: '',
+                fullnameTh: displayName,
+                fullnameEn: '',
+                birthdate: '',
+                nationalId: '',
+                yearLevel: 'ปวช.1',
+                semester: '1/2569',
+                department: 'เทคโนโลยีสารสนเทศ',
+                major: 'เทคโนโลยีสารสนเทศ',
+                phone: '',
+                email: email,
+                addressLine: '',
+                district: '',
+                province: 'บุรีรัมย์',
+                enrolledCourseIds: []
+            };
+            students.push(newStudent);
+
+            const newUser = {
+                id: 'usr_' + Date.now(),
+                email: email,
+                password: password,
+                role: 'student',
+                displayName: displayName,
+                studentId: studentCode
+            };
+            users.push(newUser);
+
+            currentUser = newUser;
+            activeStudentId = newStudent.id;
+            saveAllToStorage();
+            this.reset();
+            showToast('สมัครสมาชิกนักศึกษาสำเร็จ กรุณากรอกประวัติเพิ่มเติม', 'success');
+            enterAppShell('register');
+        });
+
+        function openAdminLoginModal() {
+            document.getElementById('admin-login-form').reset();
+            document.getElementById('admin-register-form').reset();
+            switchAdminModalMode('login');
+            const modal = document.getElementById('admin-login-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function switchAdminModalMode(mode) {
+            const loginForm = document.getElementById('admin-login-form');
+            const regForm = document.getElementById('admin-register-form');
+            const tabLogin = document.getElementById('admin-tab-login');
+            const tabReg = document.getElementById('admin-tab-register');
+
+            if (mode === 'login') {
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                tabLogin.className = 'py-1.5 rounded-lg bg-white text-navy-900 shadow-sm transition';
+                tabReg.className = 'py-1.5 rounded-lg text-slate-500 hover:text-navy-900 transition';
+            } else {
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+                tabReg.className = 'py-1.5 rounded-lg bg-white text-navy-900 shadow-sm transition';
+                tabLogin.className = 'py-1.5 rounded-lg text-slate-500 hover:text-navy-900 transition';
+            }
+        }
+
+        function closeAdminLoginModal() {
+            const modal = document.getElementById('admin-login-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        document.getElementById('admin-register-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('admin-reg-name').value.trim();
+            const email = document.getElementById('admin-reg-email').value.trim().toLowerCase();
+            const password = document.getElementById('admin-reg-password').value;
+            const inviteCode = document.getElementById('admin-reg-code').value.trim();
+
+            if (inviteCode !== 'NRTC-ADMIN-2026') {
+                showToast('รหัสยืนยันเจ้าหน้าที่ไม่ถูกต้อง (ต้องใช้ NRTC-ADMIN-2026)', 'error');
+                return;
+            }
+            if (users.some(u => u.email.toLowerCase() === email)) {
+                showToast('อีเมลนี้ถูกใช้งานในระบบแล้ว', 'error');
+                return;
+            }
+
+            const newAdmin = {
+                id: 'usr_admin_' + Date.now(),
+                email,
+                password,
+                role: 'admin',
+                displayName: name,
+                studentId: null
+            };
+            users.push(newAdmin);
+            currentUser = newAdmin;
+            activeStudentId = null;
+            saveAllToStorage();
+            closeAdminLoginModal();
+            showToast(`สมัครบัญชีแอดมิน "${name}" สำเร็จ`, 'success');
+            enterAppShell('dashboard');
+        });
+
+        document.getElementById('admin-login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('admin-modal-email').value.trim().toLowerCase();
+            const password = document.getElementById('admin-modal-password').value;
+
+            const adminUser = users.find(u =>
+                u.role === 'admin' &&
+                u.email.toLowerCase() === email &&
+                u.password === password
+            );
+
+            if (!adminUser) {
+                showToast('อีเมลหรือรหัสผ่านแอดมินไม่ถูกต้อง', 'error');
+                return;
+            }
+
+            currentUser = adminUser;
+            activeStudentId = null;
+            saveAllToStorage();
+            closeAdminLoginModal();
+            showToast(`เข้าสู่ระบบแอดมินสำเร็จ (${adminUser.displayName})`, 'success');
+            enterAppShell('dashboard');
+        });
+
+        function logoutUser() {
+            showConfirmModal('ออกจากระบบ', 'คุณต้องการออกจากระบบใช่หรือไม่?', () => {
+                currentUser = null;
+                activeStudentId = null;
+                saveAllToStorage();
+                document.getElementById('app-shell').classList.add('hidden');
+                document.getElementById('auth-view').classList.remove('hidden');
+                switchAuthMode('login');
+                showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
+            });
+        }
+
+        function enterAppShell(defaultTab = null) {
+            if (!currentUser) return;
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('app-shell').classList.remove('hidden');
+            document.getElementById('app-shell').classList.add('flex');
+
+            updateHeaderUserUI();
+            applyRolePermissions();
+            updateCountsBadge();
+
+            const targetTab = defaultTab || (currentUser.role === 'admin' ? 'dashboard' : 'register');
+            switchTab(targetTab);
+            lucide.createIcons();
+        }
+
+        function updateHeaderUserUI() {
+            document.getElementById('header-user-name').textContent = currentUser.displayName;
+            document.getElementById('user-avatar-badge').textContent = currentUser.displayName.charAt(0).toUpperCase();
+            const roleBadge = document.getElementById('header-user-role-badge');
+            if (currentUser.role === 'admin') {
+                roleBadge.textContent = 'Admin';
+                document.getElementById('header-user-subtext').textContent = currentUser.email;
+            } else {
+                roleBadge.textContent = 'Student';
+                document.getElementById('header-user-subtext').textContent = currentUser.studentId || currentUser.email;
+            }
+        }
+
+        function applyRolePermissions() {
+            const isAdmin = currentUser.role === 'admin';
+            document.querySelectorAll('.role-student').forEach(el => {
+                el.classList.toggle('hidden', isAdmin);
+            });
+            document.querySelectorAll('.role-admin').forEach(el => {
+                el.classList.toggle('hidden', !isAdmin);
+            });
+        }
+
+        function updateCountsBadge() {
+            document.getElementById('student-count-badge').textContent = students.length;
+        }
+
+        function switchTab(tabName) {
+            if (currentUser.role === 'student' && tabName === 'dashboard') {
+                tabName = 'register';
+            }
+
+            document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-slate-50', 'text-navy-900', 'font-bold');
+                btn.classList.add('text-navy-100');
+            });
+
+            const activeBtn = document.getElementById(`nav-${tabName}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-navy-100');
+                activeBtn.classList.add('bg-slate-50', 'text-navy-900', 'font-bold');
+            }
+
+            const banner = document.getElementById('admin-context-banner');
+            const activeStudent = getActiveStudent();
+            if (currentUser.role === 'admin' && activeStudent && tabName !== 'dashboard') {
+                banner.classList.remove('hidden');
+                document.getElementById('admin-context-text').textContent =
+                    `โหมดแอดมิน: กำลังจัดการข้อมูลของ ${activeStudent.fullnameTh} (${activeStudent.studentId})`;
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            if (tabName === 'register') populateStudentForm();
+            if (tabName === 'courses') renderCourses();
+            if (tabName === 'summary') renderSummaryAndTimetable();
+            if (tabName === 'dashboard') renderAdminDashboard();
+
+            lucide.createIcons();
+        }
+
+        function getActiveStudent() {
+            if (currentUser.role === 'student') {
+                return students.find(s => s.studentId === currentUser.studentId) || null;
+            }
+            return students.find(s => s.id === activeStudentId) || null;
+        }
+
+        function updateMajors(selectedMajor = '') {
+            const dept = document.getElementById('department').value;
+            const majorSelect = document.getElementById('major');
+            majorSelect.innerHTML = '<option value="">-- เลือกสาขางาน --</option>';
+            const list = MAJORS_BY_DEPT[dept] || [];
+            list.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                if (m === selectedMajor) opt.selected = true;
+                majorSelect.appendChild(opt);
+            });
+        }
+
+        function generateRandomStudentId() {
+            let code = '691011';
+            for (let i = 0; i < 4; i++) code += Math.floor(Math.random() * 10);
+            document.getElementById('student-id').value = code;
+        }
+
+        function populateStudentForm() {
+            const stu = getActiveStudent();
+            if (!stu) {
+                resetStudentForm();
+                if (currentUser.role === 'student' && currentUser.studentId) {
+                    document.getElementById('student-id').value = currentUser.studentId;
+                    document.getElementById('email').value = currentUser.email;
+                }
+                return;
+            }
+
+            document.getElementById('editing-student-id').value = stu.id;
+            document.getElementById('prefix').value = stu.prefix || '';
+            document.getElementById('fullname-th').value = stu.fullnameTh || '';
+            document.getElementById('fullname-en').value = stu.fullnameEn || '';
+            document.getElementById('birthdate').value = stu.birthdate || '';
+            document.getElementById('national-id').value = stu.nationalId || '';
+            document.getElementById('student-id').value = stu.studentId || '';
+            document.getElementById('year-level').value = stu.yearLevel || 'ปวช.1';
+            document.getElementById('semester').value = stu.semester || '1/2569';
+            document.getElementById('department').value = stu.department || '';
+            updateMajors(stu.major || '');
+            document.getElementById('phone').value = stu.phone || '';
+            document.getElementById('email').value = stu.email || '';
+            document.getElementById('address-line').value = stu.addressLine || '';
+            document.getElementById('district').value = stu.district || '';
+            document.getElementById('province').value = stu.province || '';
+        }
+
+        function resetStudentForm() {
+            document.getElementById('student-form').reset();
+            document.getElementById('editing-student-id').value = '';
+            updateMajors('');
+        }
+
+        document.getElementById('student-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const studentId = document.getElementById('student-id').value.trim();
+            const nationalId = document.getElementById('national-id').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const fullnameTh = document.getElementById('fullname-th').value.trim();
+            const dept = document.getElementById('department').value;
+            const major = document.getElementById('major').value;
+
+            if (!/^\d{10}$/.test(studentId)) {
+                showToast('รหัสนักศึกษาต้องเป็นตัวเลข 10 หลัก', 'error');
+                return;
+            }
+            if (nationalId && !/^\d{13}$/.test(nationalId)) {
+                showToast('เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก', 'error');
+                return;
+            }
+            if (phone && !/^0\d{8,9}$/.test(phone)) {
+                showToast('เบอร์โทรศัพท์ไม่ถูกต้อง', 'error');
+                return;
+            }
+            if (!fullnameTh || !dept || !major) {
+                showToast('กรุณากรอกชื่อ-นามสกุล แผนกวิชา และสาขางานให้ครบถ้วน', 'error');
+                return;
+            }
+
+            const editingId = document.getElementById('editing-student-id').value;
+            const duplicateCode = students.find(s => s.studentId === studentId && s.id !== editingId);
+            if (duplicateCode) {
+                showToast('รหัสนักศึกษานี้มีอยู่ในระบบแล้ว', 'error');
+                return;
+            }
+
+            const payload = {
+                studentId,
+                prefix: document.getElementById('prefix').value,
+                fullnameTh,
+                fullnameEn: document.getElementById('fullname-en').value.trim().toUpperCase(),
+                birthdate: document.getElementById('birthdate').value,
+                nationalId,
+                yearLevel: document.getElementById('year-level').value,
+                semester: document.getElementById('semester').value,
+                department: dept,
+                major,
+                phone,
+                email: document.getElementById('email').value.trim(),
+                addressLine: document.getElementById('address-line').value.trim(),
+                district: document.getElementById('district').value.trim(),
+                province: document.getElementById('province').value.trim()
+            };
+
+            if (editingId) {
+                const idx = students.findIndex(s => s.id === editingId);
+                if (idx !== -1) {
+                    students[idx] = { ...students[idx], ...payload };
+                    activeStudentId = students[idx].id;
+                }
+            } else {
+                const newStu = { id: 'stu_' + Date.now(), ...payload, enrolledCourseIds: [] };
+                students.push(newStu);
+                activeStudentId = newStu.id;
+            }
+
+            if (currentUser.role === 'student') {
+                currentUser.studentId = studentId;
+                currentUser.displayName = `${payload.prefix || ''}${fullnameTh}`.trim();
+                const uIdx = users.findIndex(u => u.id === currentUser.id);
+                if (uIdx !== -1) users[uIdx] = { ...currentUser };
+                updateHeaderUserUI();
+            }
+
+            saveAllToStorage();
+            updateCountsBadge();
+            showToast('บันทึกข้อมูลประวัตินักศึกษาเรียบร้อยแล้ว', 'success');
+            switchTab('courses');
+        });
+
+        function renderCourses() {
+            const stu = getActiveStudent();
+            const warningEl = document.getElementById('no-student-selected-warning');
+            const bannerEl = document.getElementById('active-student-banner');
+            const listEl = document.getElementById('courses-list');
+
+            if (!stu) {
+                warningEl.classList.remove('hidden');
+                bannerEl.textContent = 'ยังไม่ได้เลือกนักศึกษา';
+                updateCreditMeter(0);
+                listEl.innerHTML = '';
+                return;
+            }
+
+            warningEl.classList.add('hidden');
+            bannerEl.textContent = `${stu.prefix || ''}${stu.fullnameTh} (${stu.studentId}) — ${stu.department}`;
+
+            const enrolledIds = stu.enrolledCourseIds || [];
+            const totalCredits = enrolledIds.reduce((sum, cid) => {
+                const c = courses.find(item => item.id === cid);
+                return sum + (c ? Number(c.credits) : 0);
+            }, 0);
+            updateCreditMeter(totalCredits);
+
+            const q = document.getElementById('course-search').value.trim().toLowerCase();
+            const cat = document.getElementById('course-category-filter').value;
+
+            const filtered = courses.filter(c => {
+                const matchCat = cat === 'ALL' || c.category === cat;
+                const matchQ = !q ||
+                    c.code.toLowerCase().includes(q) ||
+                    c.name.toLowerCase().includes(q) ||
+                    c.instructor.toLowerCase().includes(q);
+                return matchCat && matchQ;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">ไม่พบรายวิชาที่ค้นหา</div>';
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(c => {
+                const isEnrolled = enrolledIds.includes(c.id);
+                const endHour = Number(c.startHour) + Number(c.duration);
+                const timeText = `${DAY_NAMES[c.day]} ${String(c.startHour).padStart(2, '0')}:00 - ${String(endHour).padStart(2, '0')}:00 น.`;
+
+                return `
+                    <div class="bg-white rounded-2xl shadow-sm border ${isEnrolled ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'} p-5 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start gap-2 mb-2">
+                                <span class="px-2.5 py-1 rounded-lg bg-navy-900 text-gold-300 font-mono text-xs font-bold">${c.code}</span>
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">${c.credits} หน่วยกิต</span>
+                            </div>
+                            <h4 class="font-bold text-navy-900 text-base leading-snug">${c.name}</h4>
+                            <p class="text-xs text-slate-400 mb-3">${c.enName}</p>
+                            <div class="space-y-1 text-xs text-slate-600 font-sarabun">
+                                <p><strong>เวลาเรียน:</strong> ${timeText}</p>
+                                <p><strong>ห้องเรียน:</strong> ${c.room}</p>
+                                <p><strong>ครูผู้สอน:</strong> ${c.instructor}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100">
+                            ${isEnrolled
+                                ? `<button type="button" onclick="toggleCourseEnrollment('${c.id}')" class="w-full py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs border border-red-200 transition">ถอนรายวิชานี้</button>`
+                                : `<button type="button" onclick="toggleCourseEnrollment('${c.id}')" class="w-full py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-semibold text-xs shadow transition">เลือกลงทะเบียน</button>`
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateCreditMeter(credits) {
+            const max = 22;
+            const pct = Math.min(100, Math.round((credits / max) * 100));
+            document.getElementById('credit-counter-text').textContent = `${credits} / ${max} หน่วยกิต`;
+            const bar = document.getElementById('credit-progress-bar');
+            bar.style.width = `${pct}%`;
+            bar.className = `h-full transition-all duration-300 ${credits > max ? 'bg-red-500' : credits >= 18 ? 'bg-gold-500' : 'bg-emerald-500'}`;
+        }
+
+        function hasTimeConflict(courseA, courseB) {
+            if (Number(courseA.day) !== Number(courseB.day)) return false;
+            const startA = Number(courseA.startHour);
+            const endA = startA + Number(courseA.duration);
+            const startB = Number(courseB.startHour);
+            const endB = startB + Number(courseB.duration);
+            return startA < endB && endA > startB;
+        }
+
+        function toggleCourseEnrollment(courseId) {
+            const stu = getActiveStudent();
+            if (!stu) {
+                showToast('กรุณาบันทึกข้อมูลประวัตินักศึกษาก่อน', 'warning');
+                return;
+            }
+
+            if (!Array.isArray(stu.enrolledCourseIds)) stu.enrolledCourseIds = [];
+            const idx = stu.enrolledCourseIds.indexOf(courseId);
+
+            if (idx !== -1) {
+                stu.enrolledCourseIds.splice(idx, 1);
+                saveAllToStorage();
+                showToast('ถอนรายวิชาเรียบร้อยแล้ว', 'info');
+                renderCourses();
+                return;
+            }
+
+            const targetCourse = courses.find(c => c.id === courseId);
+            if (!targetCourse) return;
+
+            const currentCredits = stu.enrolledCourseIds.reduce((sum, cid) => {
+                const c = courses.find(item => item.id === cid);
+                return sum + (c ? Number(c.credits) : 0);
+            }, 0);
+
+            if (currentCredits + Number(targetCourse.credits) > 22) {
+                showToast('หน่วยกิตรวมเกิน 22 หน่วยกิตตามเกณฑ์ที่กำหนด', 'error');
+                return;
+            }
+
+            for (const existingId of stu.enrolledCourseIds) {
+                const existingCourse = courses.find(c => c.id === existingId);
+                if (existingCourse && hasTimeConflict(targetCourse, existingCourse)) {
+                    showToast(`เวลาเรียนชนกับวิชา ${existingCourse.code} ${existingCourse.name}`, 'error');
+                    return;
+                }
+            }
+
+            stu.enrolledCourseIds.push(courseId);
+            saveAllToStorage();
+            showToast(`ลงทะเบียนวิชา ${targetCourse.code} สำเร็จ`, 'success');
+            renderCourses();
+        }
+
+        function renderSummaryAndTimetable() {
+            const stu = getActiveStudent();
+            document.getElementById('summary-date').textContent = 'พิมพ์เมื่อ: ' + new Date().toLocaleString('th-TH');
+
+            if (!stu) {
+                document.getElementById('summary-student-info').innerHTML = '<div class="col-span-full text-slate-500">ไม่พบข้อมูลนักศึกษา</div>';
+                document.getElementById('summary-courses-tbody').innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-400">ไม่มีรายวิชาที่ลงทะเบียน</td></tr>';
+                document.getElementById('summary-total-credits').textContent = '0';
+                document.getElementById('weekly-timetable').innerHTML = '';
+                return;
+            }
+
+            document.getElementById('summary-semester').textContent = `ภาคเรียนที่ ${stu.semester || '1/2569'}`;
+            document.getElementById('summary-student-info').innerHTML = `
+                <div><span class="text-xs text-slate-500 block">รหัสนักศึกษา</span><strong>${stu.studentId}</strong></div>
+                <div><span class="text-xs text-slate-500 block">ชื่อ-นามสกุล</span><strong>${stu.prefix || ''}${stu.fullnameTh}</strong></div>
+                <div><span class="text-xs text-slate-500 block">ระดับชั้น / แผนก</span><strong>${stu.yearLevel} — ${stu.department}</strong></div>
+                <div><span class="text-xs text-slate-500 block">สาขางาน</span><strong>${stu.major}</strong></div>
+            `;
+
+            const enrolledCourses = (stu.enrolledCourseIds || [])
+                .map(id => courses.find(c => c.id === id))
+                .filter(Boolean);
+
+            const totalCredits = enrolledCourses.reduce((sum, c) => sum + Number(c.credits), 0);
+            document.getElementById('summary-total-credits').textContent = totalCredits;
+
+            const tbody = document.getElementById('summary-courses-tbody');
+            if (enrolledCourses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-400">ยังไม่ได้เลือกรายวิชา</td></tr>';
+            } else {
+                tbody.innerHTML = enrolledCourses.map(c => {
+                    const endH = Number(c.startHour) + Number(c.duration);
+                    return `
+                        <tr>
+                            <td class="py-3 px-4 font-mono font-semibold">${c.code}</td>
+                            <td class="py-3 px-4">${c.name}</td>
+                            <td class="py-3 px-4 text-center font-mono">${c.credits}</td>
+                            <td class="py-3 px-4">${DAY_NAMES[c.day]} ${String(c.startHour).padStart(2, '0')}:00 - ${String(endH).padStart(2, '0')}:00</td>
+                            <td class="py-3 px-4">${c.room}</td>
+                            <td class="py-3 px-4">${c.instructor}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16];
+            let tableHtml = `<table class="w-full text-xs border-collapse border border-slate-300"><thead><tr class="bg-navy-900 text-white"><th class="border border-slate-300 p-2 w-20">วัน / เวลา</th>`;
+            hours.forEach(h => {
+                tableHtml += `<th class="border border-slate-300 p-2">${String(h).padStart(2, '0')}:00</th>`;
+            });
+            tableHtml += `</tr></thead><tbody>`;
+
+            [1, 2, 3, 4, 5].forEach(day => {
+                tableHtml += `<tr><td class="border border-slate-300 p-2 font-bold bg-slate-50 text-center">${DAY_NAMES[day]}</td>`;
+                let hIdx = 0;
+                while (hIdx < hours.length) {
+                    const hour = hours[hIdx];
+                    const matchedCourse = enrolledCourses.find(c => Number(c.day) === day && Number(c.startHour) === hour);
+                    if (matchedCourse) {
+                        const span = Math.min(Number(matchedCourse.duration), hours.length - hIdx);
+                        tableHtml += `<td colspan="${span}" class="border border-slate-300 p-2 bg-navy-100 text-navy-900 font-semibold text-center rounded">
+                            <div class="font-mono text-[11px] text-navy-700">${matchedCourse.code}</div>
+                            <div class="truncate">${matchedCourse.name}</div>
+                            <div class="text-[10px] text-slate-600">${matchedCourse.room}</div>
+                        </td>`;
+                        hIdx += span;
+                    } else {
+                        tableHtml += `<td class="border border-slate-300 p-2 text-center text-slate-300">-</td>`;
+                        hIdx += 1;
+                    }
+                }
+                tableHtml += `</tr>`;
+            });
+            tableHtml += `</tbody></table>`;
+            document.getElementById('weekly-timetable').innerHTML = tableHtml;
+        }
+
+        function renderAdminDashboard() {
+            const adminCount = users.filter(u => u.role === 'admin').length;
+            document.getElementById('stat-total-students').textContent = students.length;
+            document.getElementById('stat-total-courses').textContent = courses.length;
+            document.getElementById('stat-total-admins').textContent = adminCount;
+            updateCountsBadge();
+
+            const q = document.getElementById('admin-student-search').value.trim().toLowerCase();
+            const filteredStudents = students.filter(s =>
+                !q ||
+                s.studentId.toLowerCase().includes(q) ||
+                s.fullnameTh.toLowerCase().includes(q) ||
+                s.department.toLowerCase().includes(q)
+            );
+
+            const stuTbody = document.getElementById('admin-students-tbody');
+            if (filteredStudents.length === 0) {
+                stuTbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">ไม่พบข้อมูลนักศึกษา</td></tr>';
+            } else {
+                stuTbody.innerHTML = filteredStudents.map(s => {
+                    const credits = (s.enrolledCourseIds || []).reduce((sum, cid) => {
+                        const c = courses.find(item => item.id === cid);
+                        return sum + (c ? Number(c.credits) : 0);
+                    }, 0);
+                    return `
+                        <tr>
+                            <td class="py-3 px-4 font-mono font-semibold">${s.studentId}</td>
+                            <td class="py-3 px-4 font-medium text-navy-900">${s.prefix || ''}${s.fullnameTh}</td>
+                            <td class="py-3 px-4 text-xs text-slate-600">${s.department} / ${s.major}</td>
+                            <td class="py-3 px-4 text-center font-mono">${credits}</td>
+                            <td class="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">
+                                <button type="button" onclick="adminInspectStudent('${s.id}', 'courses')" class="px-2.5 py-1 rounded-lg bg-navy-900 text-white text-xs hover:bg-navy-800">รายวิชา</button>
+                                <button type="button" onclick="adminInspectStudent('${s.id}', 'register')" class="px-2.5 py-1 rounded-lg bg-gold-100 text-gold-800 text-xs font-semibold hover:bg-gold-200">แก้ไข</button>
+                                <button type="button" onclick="adminDeleteStudent('${s.id}')" class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100">ลบ</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            const courseTbody = document.getElementById('admin-courses-tbody');
+            courseTbody.innerHTML = courses.map(c => {
+                const endH = Number(c.startHour) + Number(c.duration);
+                return `
+                    <tr>
+                        <td class="py-3 px-4 font-mono font-semibold">${c.code}</td>
+                        <td class="py-3 px-4">${c.name}</td>
+                        <td class="py-3 px-4 text-center font-mono">${c.credits}</td>
+                        <td class="py-3 px-4 text-xs">${DAY_NAMES[c.day]} ${String(c.startHour).padStart(2, '0')}:00 - ${String(endH).padStart(2, '0')}:00 (${c.room})</td>
+                        <td class="py-3 px-4 text-right">
+                            <button type="button" onclick="adminDeleteCourse('${c.id}')" class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100">ลบวิชา</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function adminInspectStudent(stuId, targetTab) {
+            activeStudentId = stuId;
+            saveAllToStorage();
+            switchTab(targetTab);
+        }
+
+        function adminDeleteStudent(stuId) {
+            const stu = students.find(s => s.id === stuId);
+            if (!stu) return;
+            showConfirmModal('ยืนยันการลบนักศึกษา', `ต้องการลบข้อมูลของ ${stu.fullnameTh} (${stu.studentId}) ใช่หรือไม่?`, () => {
+                students = students.filter(s => s.id !== stuId);
+                users = users.filter(u => u.studentId !== stu.studentId);
+                if (activeStudentId === stuId) activeStudentId = null;
+                saveAllToStorage();
+                renderAdminDashboard();
+                showToast('ลบข้อมูลนักศึกษาเรียบร้อยแล้ว', 'info');
+            });
+        }
+
+        function openAddCourseModal() {
+            document.getElementById('add-course-form').reset();
+            const modal = document.getElementById('add-course-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeAddCourseModal() {
+            const modal = document.getElementById('add-course-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        document.getElementById('add-course-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const code = document.getElementById('new-c-code').value.trim();
+            if (courses.some(c => c.code === code)) {
+                showToast('รหัสวิชานี้มีอยู่ในระบบแล้ว', 'error');
+                return;
+            }
+            courses.push({
+                id: 'c_' + Date.now(),
+                code,
+                name: document.getElementById('new-c-name').value.trim(),
+                enName: document.getElementById('new-c-enname').value.trim(),
+                credits: Number(document.getElementById('new-c-credits').value),
+                category: document.getElementById('new-c-category').value,
+                room: document.getElementById('new-c-room').value.trim(),
+                day: Number(document.getElementById('new-c-day').value),
+                startHour: Number(document.getElementById('new-c-start').value),
+                duration: Number(document.getElementById('new-c-duration').value),
+                instructor: document.getElementById('new-c-instructor').value.trim()
+            });
+            saveAllToStorage();
+            closeAddCourseModal();
+            renderAdminDashboard();
+            showToast('เพิ่มรายวิชาใหม่สำเร็จ', 'success');
+        });
+
+        function adminDeleteCourse(courseId) {
+            showConfirmModal('ยืนยันการลบรายวิชา', 'ต้องการลบรายวิชานี้ออกจากระบบใช่หรือไม่?', () => {
+                courses = courses.filter(c => c.id !== courseId);
+                students.forEach(s => {
+                    if (Array.isArray(s.enrolledCourseIds)) {
+                        s.enrolledCourseIds = s.enrolledCourseIds.filter(id => id !== courseId);
+                    }
+                });
+                saveAllToStorage();
+                renderAdminDashboard();
+                showToast('ลบรายวิชาเรียบร้อยแล้ว', 'info');
+            });
+        }
+
+        function openAddAdminModal() {
+            document.getElementById('add-admin-form').reset();
+            const modal = document.getElementById('add-admin-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeAddAdminModal() {
+            const modal = document.getElementById('add-admin-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        document.getElementById('add-admin-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-admin-name').value.trim();
+            const email = document.getElementById('new-admin-email').value.trim().toLowerCase();
+            const password = document.getElementById('new-admin-password').value;
+
+            if (users.some(u => u.email.toLowerCase() === email)) {
+                showToast('อีเมลนี้ถูกใช้งานในระบบแล้ว', 'error');
+                return;
+            }
+
+            users.push({
+                id: 'usr_admin_' + Date.now(),
+                email,
+                password,
+                role: 'admin',
+                displayName: name,
+                studentId: null
+            });
+            saveAllToStorage();
+            closeAddAdminModal();
+            renderAdminDashboard();
+            showToast(`สร้างบัญชีแอดมิน "${name}" สำเร็จ`, 'success');
+        });
+
+        function openAccountModal() {
+            if (!currentUser) return;
+            document.getElementById('acc-username').value = currentUser.email;
+            document.getElementById('acc-role').value = currentUser.role === 'admin' ? 'เจ้าหน้าที่แอดมิน (Admin)' : 'นักศึกษา (Student)';
+            document.getElementById('acc-displayname').value = currentUser.displayName;
+            document.getElementById('acc-new-password').value = '';
+            const modal = document.getElementById('account-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeAccountModal() {
+            const modal = document.getElementById('account-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        document.getElementById('account-settings-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newName = document.getElementById('acc-displayname').value.trim();
+            const newPass = document.getElementById('acc-new-password').value;
+            if (!newName) return;
+
+            currentUser.displayName = newName;
+            if (newPass) currentUser.password = newPass;
+
+            const idx = users.findIndex(u => u.id === currentUser.id);
+            if (idx !== -1) users[idx] = { ...currentUser };
+
+            saveAllToStorage();
+            updateHeaderUserUI();
+            closeAccountModal();
+            showToast('บันทึกการตั้งค่าบัญชีเรียบร้อยแล้ว', 'success');
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromStorage();
+            lucide.createIcons();
+            if (currentUser) {
+                enterAppShell();
+            } else {
+                document.getElementById('auth-view').classList.remove('hidden');
+                document.getElementById('app-shell').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
